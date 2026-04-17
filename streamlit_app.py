@@ -1,45 +1,104 @@
 import streamlit as st
 import pickle
 
-# Load model
+# ------------------ LOAD MODEL ------------------
 model = pickle.load(open("spam_model.pkl", "rb"))
-vectorizer = pickle.load(open("tfidf.pkl", "rb"))
+tfidf = pickle.load(open("tfidf.pkl", "rb"))
 
-# Page config
-st.set_page_config(page_title="Spam Detector", page_icon="📧", layout="wide")
+# ------------------ SESSION STATE ------------------
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+if "history" not in st.session_state:
+    st.session_state.history = []
+if "users" not in st.session_state:
+    st.session_state.users = {"admin": "1234"}   # default user
 
-# Sidebar
-st.sidebar.title("📌 About")
-st.sidebar.write("Spam Email Classifier using Machine Learning")
-st.sidebar.info("Built with Streamlit")
+# ------------------ FUNCTIONS ------------------
+def predict_email(text):
+    vector = tfidf.transform([text])
+    pred = model.predict(vector)[0]
+    return "🚫 Spam" if pred == 1 else "✅ Not Spam"
 
-# Title
-st.title("🚀 Spam Email Detector")
-st.markdown("Detect whether an email is spam or not")
+def login(username, password):
+    if username in st.session_state.users and st.session_state.users[username] == password:
+        st.session_state.logged_in = True
+        return True
+    return False
 
-# Layout
-col1, col2 = st.columns(2)
+def register(username, password):
+    if username in st.session_state.users:
+        return False
+    st.session_state.users[username] = password
+    return True
 
-with col1:
-    email_text = st.text_area("📩 Enter Email", height=200)
+# ------------------ THEME / UI ------------------
+st.set_page_config(page_title="Spam Detection", page_icon="📧", layout="centered")
 
-    analyze = st.button("Analyze 🔍")
-    clear = st.button("Clear 🧹")
+st.title("📧 Spam Detection System")
 
-with col2:
-    st.subheader("📊 Result")
+# ------------------ LOGIN / REGISTER ------------------
+if not st.session_state.logged_in:
 
-    if analyze:
-        if email_text.strip() == "":
-            st.warning("⚠️ Please enter email text")
-        else:
-            transformed = vectorizer.transform([email_text])
-            prediction = model.predict(transformed)[0]
+    menu = st.sidebar.selectbox("Menu", ["Login", "Register"])
 
-            if prediction == 1:
-                st.error("🚫 Spam Email Detected")
+    if menu == "Login":
+        st.subheader("🔐 Login")
+
+        username = st.text_input("Username")
+        password = st.text_input("Password", type="password")
+
+        if st.button("Login"):
+            if login(username, password):
+                st.success("Login Successful")
             else:
-                st.success("✅ Safe Email")
+                st.error("Invalid Credentials")
 
-    if clear:
-        st.rerun()
+    elif menu == "Register":
+        st.subheader("📝 Register")
+
+        new_user = st.text_input("Create Username")
+        new_pass = st.text_input("Create Password", type="password")
+
+        if st.button("Register"):
+            if register(new_user, new_pass):
+                st.success("Registered Successfully")
+            else:
+                st.error("User already exists")
+
+# ------------------ MAIN APP ------------------
+else:
+
+    st.sidebar.success("Logged in")
+    if st.sidebar.button("Logout"):
+        st.session_state.logged_in = False
+
+    st.subheader("📨 Enter Email Text")
+
+    text = st.text_area("Type your message here...")
+
+    # -------- File Upload --------
+    uploaded_file = st.file_uploader("Upload a text file", type=["txt"])
+
+    if uploaded_file is not None:
+        text = uploaded_file.read().decode("utf-8")
+        st.text_area("File Content", text)
+
+    # -------- Predict --------
+    if st.button("Predict"):
+        if text.strip() != "":
+            result = predict_email(text)
+            st.success(result)
+
+            # Save history
+            st.session_state.history.append((text, result))
+        else:
+            st.warning("Please enter some text")
+
+    # -------- History --------
+    st.subheader("📜 Prediction History")
+
+    if st.session_state.history:
+        for i, (msg, res) in enumerate(st.session_state.history[::-1]):
+            st.write(f"{i+1}. {res} → {msg[:50]}...")
+    else:
+        st.write("No history yet")
