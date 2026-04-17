@@ -1,17 +1,24 @@
 import streamlit as st
 import pickle
 
+# ------------------ CONFIG ------------------
+st.set_page_config(page_title="Spam Detection", page_icon="📧", layout="centered")
+
 # ------------------ LOAD MODEL ------------------
 model = pickle.load(open("spam_model.pkl", "rb"))
-tfidf = pickle.load(open("tfidf.pkl", "rb"))
+tfidf = pickle.load(open("tfidf_vectorizer.pkl", "rb"))
 
-# ------------------ SESSION STATE ------------------
+# ------------------ SESSION ------------------
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
+if "show_login" not in st.session_state:
+    st.session_state.show_login = False
+if "show_register" not in st.session_state:
+    st.session_state.show_register = False
+if "users" not in st.session_state:
+    st.session_state.users = {"admin": "1234"}
 if "history" not in st.session_state:
     st.session_state.history = []
-if "users" not in st.session_state:
-    st.session_state.users = {"admin": "1234"}   # default user
 
 # ------------------ FUNCTIONS ------------------
 def predict_email(text):
@@ -19,86 +26,91 @@ def predict_email(text):
     pred = model.predict(vector)[0]
     return "🚫 Spam" if pred == 1 else "✅ Not Spam"
 
-def login(username, password):
-    if username in st.session_state.users and st.session_state.users[username] == password:
+def login(user, pwd):
+    if user in st.session_state.users and st.session_state.users[user] == pwd:
         st.session_state.logged_in = True
-        return True
-    return False
+        st.session_state.show_login = False
 
-def register(username, password):
-    if username in st.session_state.users:
-        return False
-    st.session_state.users[username] = password
-    return True
+def register(user, pwd):
+    if user not in st.session_state.users:
+        st.session_state.users[user] = pwd
+        st.session_state.show_register = False
+        st.success("Registered Successfully!")
+    else:
+        st.error("User already exists")
 
-# ------------------ THEME / UI ------------------
-st.set_page_config(page_title="Spam Detection", page_icon="📧", layout="centered")
-
-st.title("📧 Spam Detection System")
-
-# ------------------ LOGIN / REGISTER ------------------
+# ------------------ HOME SCREEN ------------------
 if not st.session_state.logged_in:
 
-    menu = st.sidebar.selectbox("Menu", ["Login", "Register"])
+    st.title("📧 Spam Detection System")
+    st.write("### Welcome! Choose an option")
 
-    if menu == "Login":
-        st.subheader("🔐 Login")
+    col1, col2, col3 = st.columns(3)
 
-        username = st.text_input("Username")
-        password = st.text_input("Password", type="password")
+    with col1:
+        if st.button("🔐 Login"):
+            st.session_state.show_login = True
 
-        if st.button("Login"):
-            if login(username, password):
-                st.success("Login Successful")
-            else:
-                st.error("Invalid Credentials")
+    with col2:
+        if st.button("📝 Register"):
+            st.session_state.show_register = True
 
-    elif menu == "Register":
-        st.subheader("📝 Register")
+    with col3:
+        if st.button("👤 Continue as Guest"):
+            st.session_state.logged_in = True
 
-        new_user = st.text_input("Create Username")
-        new_pass = st.text_input("Create Password", type="password")
+    # -------- Login Popup --------
+    if st.session_state.show_login:
+        with st.container():
+            st.subheader("🔐 Login")
+            user = st.text_input("Username")
+            pwd = st.text_input("Password", type="password")
 
-        if st.button("Register"):
-            if register(new_user, new_pass):
-                st.success("Registered Successfully")
-            else:
-                st.error("User already exists")
+            if st.button("Submit Login"):
+                login(user, pwd)
+
+    # -------- Register Popup --------
+    if st.session_state.show_register:
+        with st.container():
+            st.subheader("📝 Register")
+            new_user = st.text_input("Create Username")
+            new_pwd = st.text_input("Create Password", type="password")
+
+            if st.button("Submit Register"):
+                register(new_user, new_pwd)
 
 # ------------------ MAIN APP ------------------
 else:
 
-    st.sidebar.success("Logged in")
-    if st.sidebar.button("Logout"):
+    st.title("📨 Spam Detection App")
+
+    if st.button("Logout"):
         st.session_state.logged_in = False
 
-    st.subheader("📨 Enter Email Text")
+    text = st.text_area("Enter your email message:")
 
-    text = st.text_area("Type your message here...")
-
-    # -------- File Upload --------
+    # File upload
     uploaded_file = st.file_uploader("Upload a text file", type=["txt"])
 
     if uploaded_file is not None:
         text = uploaded_file.read().decode("utf-8")
         st.text_area("File Content", text)
 
-    # -------- Predict --------
+    # Prediction
     if st.button("Predict"):
-        if text.strip() != "":
+        if text.strip():
             result = predict_email(text)
             st.success(result)
 
-            # Save history
             st.session_state.history.append((text, result))
         else:
-            st.warning("Please enter some text")
+            st.warning("Enter text first")
 
-    # -------- History --------
-    st.subheader("📜 Prediction History")
+    # History
+    st.subheader("📜 History")
 
     if st.session_state.history:
-        for i, (msg, res) in enumerate(st.session_state.history[::-1]):
-            st.write(f"{i+1}. {res} → {msg[:50]}...")
+        for msg, res in st.session_state.history[::-1]:
+            st.write(f"{res} → {msg[:40]}...")
     else:
         st.write("No history yet")
