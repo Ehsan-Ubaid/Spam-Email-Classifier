@@ -4,68 +4,80 @@ import pickle
 # ------------------ CONFIG ------------------
 st.set_page_config(page_title="Spam Detection", layout="centered")
 
-# ------------------ PREMIUM CSS ------------------
+# ------------------ LOAD MODEL ------------------
+model = pickle.load(open("spam_model.pkl", "rb"))
+tfidf = pickle.load(open("tfidf.pkl", "rb"))
+
+# ------------------ CSS (PREMIUM UI) ------------------
 st.markdown("""
 <style>
 
 /* Background */
 .stApp {
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: linear-gradient(rgba(102,126,234,0.6), rgba(118,75,162,0.6)),
+                url("https://images.unsplash.com/photo-1501785888041-af3ef285b470");
+    background-size: cover;
+    background-position: center;
 }
 
-/* Glass Card */
-.block-container {
-    background: rgba(255, 255, 255, 0.1);
-    padding: 2rem;
-    border-radius: 15px;
-    backdrop-filter: blur(10px);
+/* Glass card */
+.card {
+    width: 400px;
+    margin: auto;
+    margin-top: 100px;
+    padding: 40px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.1);
+    backdrop-filter: blur(15px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
 }
 
-/* Titles */
-h1, h2, h3 {
-    color: white !important;
+/* Title */
+.title {
     text-align: center;
+    color: white;
+    font-size: 32px;
+    font-weight: bold;
 }
 
 /* Buttons */
 .stButton>button {
-    background: linear-gradient(135deg, #ff7e5f, #feb47b);
-    color: white;
-    border-radius: 10px;
-    height: 3em;
+    width: 100%;
+    border-radius: 25px;
+    background: white;
+    color: black;
     font-weight: bold;
-    border: none;
 }
 
 /* Inputs */
-textarea, input {
-    background-color: rgba(255,255,255,0.9) !important;
-    color: black !important;
+input, textarea {
     border-radius: 10px !important;
 }
 
-/* Subtext */
-p, label {
-    color: white !important;
+/* Text */
+.text {
+    color: white;
     text-align: center;
+}
+
+/* Hide top padding */
+.block-container {
+    padding-top: 0rem;
 }
 
 </style>
 """, unsafe_allow_html=True)
 
-# ------------------ LOAD MODEL ------------------
-model = pickle.load(open("spam_model.pkl", "rb"))
-tfidf = pickle.load(open("tfidf.pkl", "rb"))
-
 # ------------------ SESSION ------------------
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
-if "show_login" not in st.session_state:
-    st.session_state.show_login = False
-if "show_register" not in st.session_state:
-    st.session_state.show_register = False
+
+if "mode" not in st.session_state:
+    st.session_state.mode = "login"
+
 if "users" not in st.session_state:
     st.session_state.users = {"admin": "1234"}
+
 if "history" not in st.session_state:
     st.session_state.history = []
 
@@ -73,79 +85,71 @@ if "history" not in st.session_state:
 def predict_message(text):
     vector = tfidf.transform([text])
     pred = model.predict(vector)[0]
-    return "🚫 Spam" if pred == 1 else "✅ Not Spam"
+    return "Spam" if pred == 1 else "Not Spam"
 
-def login(user, pwd):
-    if user in st.session_state.users and st.session_state.users[user] == pwd:
-        st.session_state.logged_in = True
-        st.session_state.show_login = False
-    else:
-        st.error("Invalid Credentials")
-
-def register(user, pwd):
-    if user not in st.session_state.users:
-        st.session_state.users[user] = pwd
-        st.session_state.show_register = False
-        st.success("Registration Successful")
-    else:
-        st.error("User already exists")
-
-# ------------------ HOME ------------------
+# ------------------ LOGIN / REGISTER UI ------------------
 if not st.session_state.logged_in:
 
-    st.markdown("<h1>Spam Detection System</h1>", unsafe_allow_html=True)
-    st.markdown("<p>Select an option to continue</p>", unsafe_allow_html=True)
+    st.markdown('<div class="card">', unsafe_allow_html=True)
 
-    col1, col2, col3 = st.columns(3)
+    # Title
+    if st.session_state.mode == "login":
+        st.markdown('<div class="title">Login</div>', unsafe_allow_html=True)
+    else:
+        st.markdown('<div class="title">Register</div>', unsafe_allow_html=True)
 
-    with col1:
-        if st.button("🔐 Sign In"):
-            st.session_state.show_login = True
-            st.session_state.show_register = False
+    # Inputs
+    user = st.text_input("Username")
+    pwd = st.text_input("Password", type="password")
 
-    with col2:
-        if st.button("📝 Sign Up"):
-            st.session_state.show_register = True
-            st.session_state.show_login = False
+    if st.session_state.mode == "register":
+        confirm = st.text_input("Confirm Password", type="password")
 
-    with col3:
-        if st.button("👤 Guest"):
-            st.session_state.logged_in = True
-
-    # -------- SIGN IN --------
-    if st.session_state.show_login:
-        st.markdown("### 🔐 Sign In")
-        user = st.text_input("Username", key="login_user")
-        pwd = st.text_input("Password", type="password", key="login_pass")
-
+    # Button
+    if st.session_state.mode == "login":
         if st.button("Login"):
-            login(user, pwd)
-
-    # -------- SIGN UP --------
-    if st.session_state.show_register:
-        st.markdown("### 📝 Sign Up")
-        new_user = st.text_input("Create Username", key="reg_user")
-        new_pwd = st.text_input("Create Password", type="password", key="reg_pass")
-
+            if user in st.session_state.users and st.session_state.users[user] == pwd:
+                st.session_state.logged_in = True
+            else:
+                st.error("Invalid credentials")
+    else:
         if st.button("Register"):
-            register(new_user, new_pwd)
+            if pwd == confirm:
+                st.session_state.users[user] = pwd
+                st.success("Registered successfully")
+                st.session_state.mode = "login"
+            else:
+                st.error("Passwords do not match")
+
+    # Switch
+    if st.session_state.mode == "login":
+        st.markdown('<p class="text">Don’t have an account?</p>', unsafe_allow_html=True)
+        if st.button("Go to Register"):
+            st.session_state.mode = "register"
+    else:
+        st.markdown('<p class="text">Already have an account?</p>', unsafe_allow_html=True)
+        if st.button("Go to Login"):
+            st.session_state.mode = "login"
+
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # ------------------ MAIN APP ------------------
 else:
 
-    st.markdown("<h1>Spam Detection App</h1>", unsafe_allow_html=True)
+    st.title("Spam Detection App")
 
     if st.button("Logout"):
         st.session_state.logged_in = False
 
     text = st.text_area("Enter your message")
 
+    # File upload
     uploaded_file = st.file_uploader("Upload text file", type=["txt"])
-
     if uploaded_file is not None:
         text = uploaded_file.read().decode("utf-8")
         st.text_area("File Content", text)
 
+    # Prediction
     if st.button("Predict"):
         if text.strip():
             result = predict_message(text)
@@ -154,8 +158,10 @@ else:
         else:
             st.warning("Enter some text")
 
-    st.markdown("### History")
-
+    # History
+    st.subheader("History")
     if st.session_state.history:
         for msg, res in st.session_state.history[::-1]:
             st.write(f"{res} → {msg[:40]}...")
+    else:
+        st.write("No history yet")
