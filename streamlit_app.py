@@ -1,153 +1,164 @@
 import streamlit as st
 import pickle
+import base64
 
-st.set_page_config(page_title="Spam Detection", layout="wide")
-
-# ---------------- LOAD MODEL ----------------
+# -------------------- LOAD MODEL --------------------
 model = pickle.load(open("spam_model.pkl", "rb"))
-tfidf = pickle.load(open("tfidf.pkl", "rb"))
+vectorizer = pickle.load(open("tfidf.pkl", "rb"))
 
-# ---------------- CSS ----------------
-st.markdown("""
-<style>
+# -------------------- BACKGROUND --------------------
+def set_bg(image_file):
+    with open(image_file, "rb") as f:
+        encoded = base64.b64encode(f.read()).decode()
 
-/* Remove scroll */
-html, body {
-    overflow: hidden;
-}
-
-/* Background */
-.stApp {
-    background: linear-gradient(rgba(102,126,234,0.6), rgba(118,75,162,0.6)),
-                url("https://images.unsplash.com/photo-1501785888041-af3ef285b470");
-    background-size: cover;
-    background-position: center;
-}
-
-/* Center box */
-.center {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 320px;
-    text-align: center;
-}
-
-/* Title */
-.title {
-    color: white;
-    font-size: 30px;
-    font-weight: bold;
-    margin-bottom: 15px;
-}
-
-/* 🔥 GLASS INPUTS */
-input, textarea {
-    background: rgba(255,255,255,0.15) !important;
-    border: 1px solid rgba(255,255,255,0.3) !important;
-    backdrop-filter: blur(10px);
-    border-radius: 20px !important;
-    color: white !important;
-}
-
-/* File uploader glass */
-section[data-testid="stFileUploader"] {
-    background: rgba(255,255,255,0.15);
-    padding: 10px;
-    border-radius: 15px;
-    border: 1px solid rgba(255,255,255,0.3);
-}
-
-/* Button */
-.stButton>button {
-    width: 100%;
-    border-radius: 25px;
-    background: white;
-    color: black;
-    font-weight: bold;
-}
-
-/* Text */
-label, p {
-    color: white !important;
-}
-
-</style>
-""", unsafe_allow_html=True)
-
-# ---------------- SESSION ----------------
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
-if "mode" not in st.session_state:
-    st.session_state.mode = "signin"
-if "users" not in st.session_state:
-    st.session_state.users = {"admin": "1234"}
-if "history" not in st.session_state:
-    st.session_state.history = []
-
-# ---------------- FUNCTION ----------------
-def predict_message(text):
-    vector = tfidf.transform([text])
-    pred = model.predict(vector)[0]
-    return "Spam" if pred == 1 else "Not Spam"
-
-# ---------------- LOGIN ----------------
-if not st.session_state.logged_in:
-
-    st.markdown('<div class="center">', unsafe_allow_html=True)
-
-    st.markdown('<div class="title">Login</div>', unsafe_allow_html=True)
-
-    user = st.text_input("Username")
-    pwd = st.text_input("Password", type="password")
-
-    if st.button("Login"):
-        if user in st.session_state.users and st.session_state.users[user] == pwd:
-            st.session_state.logged_in = True
-            st.rerun()
-        else:
-            st.error("Invalid credentials")
-
-    if st.button("Continue as Guest"):
-        st.session_state.logged_in = True
-        st.rerun()
-
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# ---------------- MAIN APP ----------------
-else:
-
-    # Enable scroll after login
-    st.markdown("""
+    st.markdown(f"""
     <style>
-    html, body {
-        overflow: auto;
-    }
+    .stApp {{
+        background-image: url("data:image/jpg;base64,{encoded}");
+        background-size: cover;
+        background-position: center;
+    }}
+
+    .card {{
+        background: rgba(255,255,255,0.85);
+        padding: 25px;
+        border-radius: 15px;
+        backdrop-filter: blur(10px);
+        margin-bottom: 20px;
+    }}
+
+    .title {{
+        text-align:center;
+        color:white;
+        font-size:40px;
+        font-weight:bold;
+    }}
     </style>
     """, unsafe_allow_html=True)
 
-    st.title("Spam Detection System")
+set_bg("bg.jpg")
 
-    if st.button("Logout"):
+# -------------------- SESSION --------------------
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+
+if "username" not in st.session_state:
+    st.session_state.username = ""
+
+if "users" not in st.session_state:
+    st.session_state.users = {}
+
+if "history" not in st.session_state:
+    st.session_state.history = []
+
+# -------------------- LOGIN --------------------
+def login():
+    st.markdown('<div class="title">🔐 Login</div>', unsafe_allow_html=True)
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+
+    option = st.radio("", ["Sign In", "Sign Up", "Guest"])
+
+    if option == "Sign In":
+        u = st.text_input("Username")
+        p = st.text_input("Password", type="password")
+
+        if st.button("Login"):
+            if u in st.session_state.users and st.session_state.users[u] == p:
+                st.session_state.logged_in = True
+                st.session_state.username = u
+                st.rerun()
+            else:
+                st.error("Invalid login")
+
+    elif option == "Sign Up":
+        u = st.text_input("Create Username")
+        p = st.text_input("Create Password", type="password")
+
+        if st.button("Create Account"):
+            st.session_state.users[u] = p
+            st.success("Account created!")
+
+    else:
+        if st.button("Continue as Guest"):
+            st.session_state.logged_in = True
+            st.session_state.username = "Guest"
+            st.rerun()
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# -------------------- MAIN APP --------------------
+def app():
+    st.markdown(f'<div class="title">📧 Spam Detector</div>', unsafe_allow_html=True)
+    st.write(f"Welcome **{st.session_state.username}**")
+
+    # -------- TEXT INPUT --------
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    text = st.text_area("Enter Email Text", height=150)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # -------- FILE UPLOAD --------
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    uploaded_file = st.file_uploader("Upload .txt Email", type=["txt"])
+
+    if uploaded_file:
+        text = uploaded_file.read().decode("utf-8")
+        st.success("File loaded successfully")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # -------- BUTTONS --------
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        analyze = st.button("Analyze")
+
+    with col2:
+        clear = st.button("Clear")
+
+    with col3:
+        logout = st.button("Logout")
+
+    # -------- ANALYSIS --------
+    if analyze:
+        if text.strip() == "":
+            st.warning("Enter text first")
+        else:
+            vec = vectorizer.transform([text])
+            pred = model.predict(vec)[0]
+
+            result = "Spam" if pred == 1 else "Not Spam"
+
+            if pred == 1:
+                st.error("🚫 Spam Email")
+            else:
+                st.success("✅ Not Spam")
+
+            # Save history
+            st.session_state.history.append({
+                "text": text[:50],
+                "result": result
+            })
+
+    if clear:
+        st.rerun()
+
+    if logout:
         st.session_state.logged_in = False
         st.rerun()
 
-    text = st.text_area("Enter your message")
+    # -------- HISTORY --------
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.subheader("🕘 History")
 
-    uploaded_file = st.file_uploader("Upload text file", type=["txt"])
-    if uploaded_file is not None:
-        text = uploaded_file.read().decode("utf-8")
+    if len(st.session_state.history) == 0:
+        st.write("No history yet")
+    else:
+        for i, item in enumerate(reversed(st.session_state.history), 1):
+            st.write(f"{i}. {item['text']} → **{item['result']}**")
 
-    if st.button("Predict"):
-        if text.strip():
-            result = predict_message(text)
-            st.success(result)
-            st.session_state.history.append((text, result))
-        else:
-            st.warning("Enter some text")
+    st.markdown('</div>', unsafe_allow_html=True)
 
-    st.subheader("History")
-
-    for msg, res in st.session_state.history[::-1]:
-        st.write(f"{res} → {msg[:40]}...")
+# -------------------- ROUTING --------------------
+if st.session_state.logged_in:
+    app()
+else:
+    login()
