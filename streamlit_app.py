@@ -11,12 +11,18 @@ tfidf = pickle.load(open("tfidf.pkl", "rb"))
 st.markdown("""
 <style>
 
-/* Disable scrolling */
-html, body, [class*="css"] {
+/* REMOVE ALL DEFAULT PADDING */
+.block-container {
+    padding-top: 0rem !important;
+    padding-bottom: 0rem !important;
+}
+
+/* Disable scroll */
+html, body {
     overflow: hidden;
 }
 
-/* Full screen background */
+/* Full background */
 .stApp {
     background: linear-gradient(rgba(102,126,234,0.7), rgba(118,75,162,0.7)),
                 url("https://images.unsplash.com/photo-1501785888041-af3ef285b470");
@@ -24,37 +30,38 @@ html, body, [class*="css"] {
     background-position: center;
 }
 
-/* Center everything */
-.center {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
+/* CENTER WRAPPER */
+.center-wrapper {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 320px;
+    text-align: center;
 }
 
-/* Title */
+/* TITLE */
 .title {
     color: white;
-    font-size: 50px;
+    font-size: 42px;
     font-weight: bold;
-    margin-bottom: 10px;
+    margin-bottom: 20px;
 }
 
-.subtitle {
-    color: white;
-    margin-bottom: 30px;
+/* INPUTS */
+input {
+    border-radius: 10px !important;
 }
 
-/* Buttons */
+/* BUTTONS WHITE */
 .stButton>button {
-    width: 250px;
-    margin: 8px;
+    width: 100%;
     border-radius: 25px;
-    background: linear-gradient(135deg, #ff7e5f, #feb47b);
-    color: white;
+    background: white;
+    color: black;
     font-weight: bold;
     border: none;
+    margin-top: 8px;
 }
 
 </style>
@@ -76,15 +83,13 @@ def predict_message(text):
     pred = model.predict(vector)[0]
     return "Spam" if pred == 1 else "Not Spam"
 
-# ---------------- LANDING SCREEN ----------------
+# ---------------- LANDING ----------------
 if not st.session_state.logged_in:
 
-    st.markdown('<div class="center">', unsafe_allow_html=True)
+    st.markdown('<div class="center-wrapper">', unsafe_allow_html=True)
 
     st.markdown('<div class="title">Spam Detection System</div>', unsafe_allow_html=True)
-    st.markdown('<div class="subtitle">Welcome</div>', unsafe_allow_html=True)
 
-    # -------- SIGN IN --------
     if st.session_state.mode == "signin":
 
         user = st.text_input("Username")
@@ -101,26 +106,26 @@ if not st.session_state.logged_in:
             st.session_state.logged_in = True
             st.rerun()
 
-        if st.button("Go to Sign Up"):
+        if st.button("Sign Up"):
             st.session_state.mode = "signup"
             st.rerun()
 
-    # -------- SIGN UP --------
     else:
+
         user = st.text_input("Username")
         pwd = st.text_input("Password", type="password")
         confirm = st.text_input("Confirm Password", type="password")
 
-        if st.button("Sign Up"):
+        if st.button("Create Account"):
             if pwd == confirm:
                 st.session_state.users[user] = pwd
-                st.success("Account created")
                 st.session_state.mode = "signin"
+                st.success("Account created")
                 st.rerun()
             else:
                 st.error("Passwords do not match")
 
-        if st.button("Go to Sign In"):
+        if st.button("Back to Sign In"):
             st.session_state.mode = "signin"
             st.rerun()
 
@@ -129,10 +134,10 @@ if not st.session_state.logged_in:
 # ---------------- MAIN APP ----------------
 else:
 
-    # Enable scrolling again for main app
+    # Enable scroll after login
     st.markdown("""
     <style>
-    html, body, [class*="css"] {
+    html, body {
         overflow: auto;
     }
     </style>
