@@ -1,17 +1,17 @@
 import streamlit as st
 import pickle
 
-st.set_page_config(page_title="Spam Detection", layout="centered")
+st.set_page_config(page_title="Spam Detection", layout="wide")
 
 # ---------------- LOAD MODEL ----------------
 model = pickle.load(open("spam_model.pkl", "rb"))
 tfidf = pickle.load(open("tfidf.pkl", "rb"))
 
-# ---------------- CSS FIX ----------------
+# ---------------- CSS ----------------
 st.markdown("""
 <style>
 
-/* Background */
+/* Full screen background */
 .stApp {
     background: linear-gradient(rgba(102,126,234,0.6), rgba(118,75,162,0.6)),
                 url("https://images.unsplash.com/photo-1501785888041-af3ef285b470");
@@ -19,11 +19,17 @@ st.markdown("""
     background-position: center;
 }
 
-/* 🔥 APPLY GLASS TO WHOLE BLOCK */
-.main > div {
-    max-width: 450px;
-    margin: auto;
-    margin-top: 100px;
+/* Center container */
+.center-box {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 90vh;
+}
+
+/* Glass card */
+.card {
+    width: 420px;
     padding: 40px;
     border-radius: 20px;
     background: rgba(255,255,255,0.15);
@@ -32,16 +38,27 @@ st.markdown("""
 }
 
 /* Title */
-h1 {
+.title {
     text-align: center;
     color: white;
+    font-size: 30px;
+    font-weight: bold;
 }
 
-/* Subtitle */
-.subtext {
+.subtitle {
     text-align: center;
     color: white;
     margin-bottom: 20px;
+}
+
+/* Buttons FIXED */
+.stButton>button {
+    width: 100%;
+    border-radius: 25px;
+    background: linear-gradient(135deg, #ff7e5f, #feb47b);
+    color: white;
+    font-weight: bold;
+    border: none;
 }
 
 /* Inputs */
@@ -49,19 +66,11 @@ input, textarea {
     border-radius: 10px !important;
 }
 
-/* Buttons */
-.stButton>button {
-    width: 100%;
-    border-radius: 25px;
-    background: white;
-    color: black;
-    font-weight: bold;
-}
-
 /* Text */
-p {
-    color: white !important;
+.text {
+    color: white;
     text-align: center;
+    font-size: 14px;
 }
 
 </style>
@@ -70,13 +79,10 @@ p {
 # ---------------- SESSION ----------------
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
-
 if "mode" not in st.session_state:
     st.session_state.mode = "signin"
-
 if "users" not in st.session_state:
     st.session_state.users = {"admin": "1234"}
-
 if "history" not in st.session_state:
     st.session_state.history = []
 
@@ -86,11 +92,13 @@ def predict_message(text):
     pred = model.predict(vector)[0]
     return "Spam" if pred == 1 else "Not Spam"
 
-# ---------------- AUTH ----------------
+# ---------------- AUTH UI ----------------
 if not st.session_state.logged_in:
 
-    st.markdown("<h1>Spam Detection System</h1>", unsafe_allow_html=True)
-    st.markdown('<p class="subtext">Welcome</p>', unsafe_allow_html=True)
+    st.markdown('<div class="center-box"><div class="card">', unsafe_allow_html=True)
+
+    st.markdown('<div class="title">Spam Detection System</div>', unsafe_allow_html=True)
+    st.markdown('<div class="subtitle">Welcome</div>', unsafe_allow_html=True)
 
     user = st.text_input("Username")
     pwd = st.text_input("Password", type="password")
@@ -108,7 +116,7 @@ if not st.session_state.logged_in:
             st.session_state.logged_in = True
             st.rerun()
 
-        st.markdown("Don’t have an account?")
+        st.markdown('<p class="text">Don’t have an account?</p>', unsafe_allow_html=True)
         if st.button("Go to Sign Up"):
             st.session_state.mode = "signup"
             st.rerun()
@@ -125,12 +133,14 @@ if not st.session_state.logged_in:
             else:
                 st.error("Passwords do not match")
 
-        st.markdown("Already have an account?")
+        st.markdown('<p class="text">Already have an account?</p>', unsafe_allow_html=True)
         if st.button("Go to Sign In"):
             st.session_state.mode = "signin"
             st.rerun()
 
-# ---------------- MAIN ----------------
+    st.markdown('</div></div>', unsafe_allow_html=True)
+
+# ---------------- MAIN APP ----------------
 else:
 
     st.title("Spam Detection System")
@@ -157,5 +167,8 @@ else:
 
     st.subheader("History")
 
-    for msg, res in st.session_state.history[::-1]:
-        st.write(f"{res} → {msg[:40]}...")
+    if st.session_state.history:
+        for msg, res in st.session_state.history[::-1]:
+            st.write(f"{res} → {msg[:40]}...")
+    else:
+        st.write("No history yet")
