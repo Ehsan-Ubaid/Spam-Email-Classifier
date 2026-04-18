@@ -11,27 +11,21 @@ tfidf = pickle.load(open("tfidf.pkl", "rb"))
 st.markdown("""
 <style>
 
-/* REMOVE ALL DEFAULT PADDING */
-.block-container {
-    padding-top: 0rem !important;
-    padding-bottom: 0rem !important;
-}
-
-/* Disable scroll */
+/* Remove scroll */
 html, body {
     overflow: hidden;
 }
 
-/* Full background */
+/* Background */
 .stApp {
-    background: linear-gradient(rgba(102,126,234,0.7), rgba(118,75,162,0.7)),
+    background: linear-gradient(rgba(102,126,234,0.6), rgba(118,75,162,0.6)),
                 url("https://images.unsplash.com/photo-1501785888041-af3ef285b470");
     background-size: cover;
     background-position: center;
 }
 
-/* CENTER WRAPPER */
-.center-wrapper {
+/* Center box */
+.center {
     position: fixed;
     top: 50%;
     left: 50%;
@@ -40,28 +34,43 @@ html, body {
     text-align: center;
 }
 
-/* TITLE */
+/* Title */
 .title {
     color: white;
-    font-size: 42px;
+    font-size: 30px;
     font-weight: bold;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
 }
 
-/* INPUTS */
-input {
-    border-radius: 10px !important;
+/* 🔥 GLASS INPUTS */
+input, textarea {
+    background: rgba(255,255,255,0.15) !important;
+    border: 1px solid rgba(255,255,255,0.3) !important;
+    backdrop-filter: blur(10px);
+    border-radius: 20px !important;
+    color: white !important;
 }
 
-/* BUTTONS WHITE */
+/* File uploader glass */
+section[data-testid="stFileUploader"] {
+    background: rgba(255,255,255,0.15);
+    padding: 10px;
+    border-radius: 15px;
+    border: 1px solid rgba(255,255,255,0.3);
+}
+
+/* Button */
 .stButton>button {
     width: 100%;
     border-radius: 25px;
     background: white;
     color: black;
     font-weight: bold;
-    border: none;
-    margin-top: 8px;
+}
+
+/* Text */
+label, p {
+    color: white !important;
 }
 
 </style>
@@ -83,51 +92,26 @@ def predict_message(text):
     pred = model.predict(vector)[0]
     return "Spam" if pred == 1 else "Not Spam"
 
-# ---------------- LANDING ----------------
+# ---------------- LOGIN ----------------
 if not st.session_state.logged_in:
 
-    st.markdown('<div class="center-wrapper">', unsafe_allow_html=True)
+    st.markdown('<div class="center">', unsafe_allow_html=True)
 
-    st.markdown('<div class="title">Spam Detection System</div>', unsafe_allow_html=True)
+    st.markdown('<div class="title">Login</div>', unsafe_allow_html=True)
 
-    if st.session_state.mode == "signin":
+    user = st.text_input("Username")
+    pwd = st.text_input("Password", type="password")
 
-        user = st.text_input("Username")
-        pwd = st.text_input("Password", type="password")
-
-        if st.button("Sign In"):
-            if user in st.session_state.users and st.session_state.users[user] == pwd:
-                st.session_state.logged_in = True
-                st.rerun()
-            else:
-                st.error("Invalid credentials")
-
-        if st.button("Continue as Guest"):
+    if st.button("Login"):
+        if user in st.session_state.users and st.session_state.users[user] == pwd:
             st.session_state.logged_in = True
             st.rerun()
+        else:
+            st.error("Invalid credentials")
 
-        if st.button("Sign Up"):
-            st.session_state.mode = "signup"
-            st.rerun()
-
-    else:
-
-        user = st.text_input("Username")
-        pwd = st.text_input("Password", type="password")
-        confirm = st.text_input("Confirm Password", type="password")
-
-        if st.button("Create Account"):
-            if pwd == confirm:
-                st.session_state.users[user] = pwd
-                st.session_state.mode = "signin"
-                st.success("Account created")
-                st.rerun()
-            else:
-                st.error("Passwords do not match")
-
-        if st.button("Back to Sign In"):
-            st.session_state.mode = "signin"
-            st.rerun()
+    if st.button("Continue as Guest"):
+        st.session_state.logged_in = True
+        st.rerun()
 
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -147,7 +131,6 @@ else:
 
     if st.button("Logout"):
         st.session_state.logged_in = False
-        st.session_state.mode = "signin"
         st.rerun()
 
     text = st.text_area("Enter your message")
@@ -155,7 +138,6 @@ else:
     uploaded_file = st.file_uploader("Upload text file", type=["txt"])
     if uploaded_file is not None:
         text = uploaded_file.read().decode("utf-8")
-        st.text_area("File Content", text)
 
     if st.button("Predict"):
         if text.strip():
@@ -167,8 +149,5 @@ else:
 
     st.subheader("History")
 
-    if st.session_state.history:
-        for msg, res in st.session_state.history[::-1]:
-            st.write(f"{res} → {msg[:40]}...")
-    else:
-        st.write("No history yet")
+    for msg, res in st.session_state.history[::-1]:
+        st.write(f"{res} → {msg[:40]}...")
