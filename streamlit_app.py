@@ -4,6 +4,33 @@ import pickle
 # ------------------ CONFIG ------------------
 st.set_page_config(page_title="Spam Detection", layout="centered")
 
+# ------------------ CUSTOM BACKGROUND + STYLING ------------------
+st.markdown("""
+    <style>
+    .stApp {
+        background: linear-gradient(to right, #f5f7fa, #c3cfe2);
+    }
+
+    h1, h2, h3, h4, h5, h6, p, label {
+        color: #000000 !important;
+    }
+
+    .stButton>button {
+        background-color: #4CAF50;
+        color: white;
+        border-radius: 8px;
+        height: 3em;
+        width: 100%;
+    }
+
+    textarea, input {
+        background-color: #ffffff !important;
+        color: black !important;
+        border-radius: 8px !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 # ------------------ LOAD MODEL ------------------
 model = pickle.load(open("spam_model.pkl", "rb"))
 tfidf = pickle.load(open("tfidf.pkl", "rb"))
@@ -19,7 +46,7 @@ if "show_register" not in st.session_state:
     st.session_state.show_register = False
 
 if "users" not in st.session_state:
-    st.session_state.users = {"admin": "1234"}  # default user
+    st.session_state.users = {"admin": "1234"}
 
 if "history" not in st.session_state:
     st.session_state.history = []
@@ -53,24 +80,21 @@ if not st.session_state.logged_in:
 
     col1, col2, col3 = st.columns(3)
 
-    # -------- SIGN IN --------
     with col1:
         if st.button("Sign In"):
             st.session_state.show_login = True
             st.session_state.show_register = False
 
-    # -------- SIGN UP --------
     with col2:
         if st.button("Sign Up"):
             st.session_state.show_register = True
             st.session_state.show_login = False
 
-    # -------- GUEST --------
     with col3:
         if st.button("Continue as Guest"):
             st.session_state.logged_in = True
 
-    # -------- SIGN IN FORM --------
+    # -------- SIGN IN --------
     if st.session_state.show_login:
         st.markdown("---")
         st.subheader("Sign In")
@@ -81,7 +105,7 @@ if not st.session_state.logged_in:
         if st.button("Submit Sign In"):
             login(user, pwd)
 
-    # -------- SIGN UP FORM --------
+    # -------- SIGN UP --------
     if st.session_state.show_register:
         st.markdown("---")
         st.subheader("Sign Up")
@@ -101,28 +125,25 @@ else:
         st.session_state.logged_in = False
 
     st.subheader("Enter Message")
-
     text = st.text_area("Type your message here...")
 
-    # -------- File Upload --------
+    # -------- FILE UPLOAD --------
     uploaded_file = st.file_uploader("Upload a text file", type=["txt"])
 
     if uploaded_file is not None:
         text = uploaded_file.read().decode("utf-8")
         st.text_area("File Content", text)
 
-    # -------- Predict --------
+    # -------- PREDICT --------
     if st.button("Predict"):
         if text.strip():
             result = predict_message(text)
             st.success(result)
-
-            # Save history
             st.session_state.history.append((text, result))
         else:
             st.warning("Please enter some text")
 
-    # -------- History --------
+    # -------- HISTORY --------
     st.subheader("Prediction History")
 
     if st.session_state.history:
