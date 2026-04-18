@@ -1,61 +1,76 @@
 import streamlit as st
 import pickle
 
-# ------------------ CONFIG ------------------
+# ---------------- CONFIG ----------------
 st.set_page_config(page_title="Spam Detection", layout="centered")
 
-# ------------------ LOAD MODEL ------------------
+# ---------------- LOAD MODEL ----------------
 model = pickle.load(open("spam_model.pkl", "rb"))
 tfidf = pickle.load(open("tfidf.pkl", "rb"))
 
-# ------------------ CSS ------------------
+# ---------------- CSS ----------------
 st.markdown("""
 <style>
+
+/* Background */
 .stApp {
-    background: linear-gradient(rgba(102,126,234,0.7), rgba(118,75,162,0.7)),
+    background: linear-gradient(rgba(102,126,234,0.6), rgba(118,75,162,0.6)),
                 url("https://images.unsplash.com/photo-1501785888041-af3ef285b470");
     background-size: cover;
+    background-position: center;
 }
 
+/* Glass Card */
 .card {
-    width: 400px;
+    width: 420px;
     margin: auto;
-    margin-top: 80px;
-    padding: 35px;
+    margin-top: 120px;
+    padding: 50px 30px 30px 30px;
     border-radius: 20px;
-    background: rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.15);
     backdrop-filter: blur(15px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    text-align: center;
 }
 
+/* Title FIXED POSITION */
 .title {
-    text-align: center;
     color: white;
-    font-size: 28px;
+    font-size: 30px;
     font-weight: bold;
+    margin-bottom: 5px;
 }
 
+/* Subtitle */
 .subtitle {
-    text-align: center;
     color: white;
     margin-bottom: 20px;
 }
 
+/* Buttons */
 .stButton>button {
     width: 100%;
-    border-radius: 20px;
+    border-radius: 25px;
     background: white;
     color: black;
     font-weight: bold;
 }
 
+/* Inputs */
+input, textarea {
+    border-radius: 10px !important;
+}
+
+/* Text */
 .text {
     color: white;
-    text-align: center;
+    font-size: 14px;
 }
+
 </style>
 """, unsafe_allow_html=True)
 
-# ------------------ SESSION ------------------
+# ---------------- SESSION ----------------
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
@@ -68,17 +83,18 @@ if "users" not in st.session_state:
 if "history" not in st.session_state:
     st.session_state.history = []
 
-# ------------------ FUNCTION ------------------
+# ---------------- FUNCTION ----------------
 def predict_message(text):
     vector = tfidf.transform([text])
     pred = model.predict(vector)[0]
     return "Spam" if pred == 1 else "Not Spam"
 
-# ------------------ AUTH SCREEN ------------------
+# ---------------- AUTH UI ----------------
 if not st.session_state.logged_in:
 
     st.markdown('<div class="card">', unsafe_allow_html=True)
 
+    # ✅ FIXED TITLE POSITION
     st.markdown('<div class="title">Spam Detection System</div>', unsafe_allow_html=True)
     st.markdown('<div class="subtitle">Welcome</div>', unsafe_allow_html=True)
 
@@ -124,7 +140,7 @@ if not st.session_state.logged_in:
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-# ------------------ MAIN APP ------------------
+# ---------------- MAIN APP ----------------
 else:
 
     st.title("Spam Detection System")
@@ -150,6 +166,7 @@ else:
             st.warning("Enter some text")
 
     st.subheader("History")
+
     if st.session_state.history:
         for msg, res in st.session_state.history[::-1]:
             st.write(f"{res} → {msg[:40]}...")
