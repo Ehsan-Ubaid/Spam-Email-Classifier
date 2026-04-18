@@ -1,14 +1,13 @@
 import streamlit as st
 import pickle
 
-# ---------------- CONFIG ----------------
 st.set_page_config(page_title="Spam Detection", layout="centered")
 
 # ---------------- LOAD MODEL ----------------
 model = pickle.load(open("spam_model.pkl", "rb"))
 tfidf = pickle.load(open("tfidf.pkl", "rb"))
 
-# ---------------- CSS ----------------
+# ---------------- CSS FIX ----------------
 st.markdown("""
 <style>
 
@@ -20,31 +19,34 @@ st.markdown("""
     background-position: center;
 }
 
-/* Glass Card */
-.card {
-    width: 420px;
+/* 🔥 APPLY GLASS TO WHOLE BLOCK */
+.main > div {
+    max-width: 450px;
     margin: auto;
-    margin-top: 120px;
-    padding: 50px 30px 30px 30px;
+    margin-top: 100px;
+    padding: 40px;
     border-radius: 20px;
     background: rgba(255,255,255,0.15);
     backdrop-filter: blur(15px);
     box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-    text-align: center;
 }
 
-/* Title FIXED POSITION */
-.title {
+/* Title */
+h1 {
+    text-align: center;
     color: white;
-    font-size: 30px;
-    font-weight: bold;
-    margin-bottom: 5px;
 }
 
 /* Subtitle */
-.subtitle {
+.subtext {
+    text-align: center;
     color: white;
     margin-bottom: 20px;
+}
+
+/* Inputs */
+input, textarea {
+    border-radius: 10px !important;
 }
 
 /* Buttons */
@@ -56,15 +58,10 @@ st.markdown("""
     font-weight: bold;
 }
 
-/* Inputs */
-input, textarea {
-    border-radius: 10px !important;
-}
-
 /* Text */
-.text {
-    color: white;
-    font-size: 14px;
+p {
+    color: white !important;
+    text-align: center;
 }
 
 </style>
@@ -89,19 +86,15 @@ def predict_message(text):
     pred = model.predict(vector)[0]
     return "Spam" if pred == 1 else "Not Spam"
 
-# ---------------- AUTH UI ----------------
+# ---------------- AUTH ----------------
 if not st.session_state.logged_in:
 
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-
-    # ✅ FIXED TITLE POSITION
-    st.markdown('<div class="title">Spam Detection System</div>', unsafe_allow_html=True)
-    st.markdown('<div class="subtitle">Welcome</div>', unsafe_allow_html=True)
+    st.markdown("<h1>Spam Detection System</h1>", unsafe_allow_html=True)
+    st.markdown('<p class="subtext">Welcome</p>', unsafe_allow_html=True)
 
     user = st.text_input("Username")
     pwd = st.text_input("Password", type="password")
 
-    # -------- SIGN IN --------
     if st.session_state.mode == "signin":
 
         if st.button("Sign In"):
@@ -115,12 +108,11 @@ if not st.session_state.logged_in:
             st.session_state.logged_in = True
             st.rerun()
 
-        st.markdown('<p class="text">Don’t have an account?</p>', unsafe_allow_html=True)
+        st.markdown("Don’t have an account?")
         if st.button("Go to Sign Up"):
             st.session_state.mode = "signup"
             st.rerun()
 
-    # -------- SIGN UP --------
     else:
         confirm = st.text_input("Confirm Password", type="password")
 
@@ -133,14 +125,12 @@ if not st.session_state.logged_in:
             else:
                 st.error("Passwords do not match")
 
-        st.markdown('<p class="text">Already have an account?</p>', unsafe_allow_html=True)
+        st.markdown("Already have an account?")
         if st.button("Go to Sign In"):
             st.session_state.mode = "signin"
             st.rerun()
 
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# ---------------- MAIN APP ----------------
+# ---------------- MAIN ----------------
 else:
 
     st.title("Spam Detection System")
@@ -167,8 +157,5 @@ else:
 
     st.subheader("History")
 
-    if st.session_state.history:
-        for msg, res in st.session_state.history[::-1]:
-            st.write(f"{res} → {msg[:40]}...")
-    else:
-        st.write("No history yet")
+    for msg, res in st.session_state.history[::-1]:
+        st.write(f"{res} → {msg[:40]}...")
