@@ -1,164 +1,116 @@
 import streamlit as st
 import pickle
-import base64
 
-# -------------------- LOAD MODEL --------------------
+# ------------------ CONFIG ------------------
+st.set_page_config(page_title="Spam Detection", page_icon="📧", layout="centered")
+
+# ------------------ LOAD MODEL ------------------
 model = pickle.load(open("spam_model.pkl", "rb"))
-vectorizer = pickle.load(open("tfidf.pkl", "rb"))
+tfidf = pickle.load(open("tfidf.pkl", "rb"))
 
-# -------------------- BACKGROUND --------------------
-def set_bg(image_file):
-    with open(image_file, "rb") as f:
-        encoded = base64.b64encode(f.read()).decode()
-
-    st.markdown(f"""
-    <style>
-    .stApp {{
-        background-image: url("data:image/jpg;base64,{encoded}");
-        background-size: cover;
-        background-position: center;
-    }}
-
-    .card {{
-        background: rgba(255,255,255,0.85);
-        padding: 25px;
-        border-radius: 15px;
-        backdrop-filter: blur(10px);
-        margin-bottom: 20px;
-    }}
-
-    .title {{
-        text-align:center;
-        color:white;
-        font-size:40px;
-        font-weight:bold;
-    }}
-    </style>
-    """, unsafe_allow_html=True)
-
-set_bg("bg.jpg")
-
-# -------------------- SESSION --------------------
+# ------------------ SESSION ------------------
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
-
-if "username" not in st.session_state:
-    st.session_state.username = ""
-
+if "show_login" not in st.session_state:
+    st.session_state.show_login = False
+if "show_register" not in st.session_state:
+    st.session_state.show_register = False
 if "users" not in st.session_state:
-    st.session_state.users = {}
-
+    st.session_state.users = {"admin": "1234"}
 if "history" not in st.session_state:
     st.session_state.history = []
 
-# -------------------- LOGIN --------------------
-def login():
-    st.markdown('<div class="title">🔐 Login</div>', unsafe_allow_html=True)
-    st.markdown('<div class="card">', unsafe_allow_html=True)
+# ------------------ FUNCTIONS ------------------
+def predict_email(text):
+    vector = tfidf.transform([text])
+    pred = model.predict(vector)[0]
+    return "🚫 Spam" if pred == 1 else "✅ Not Spam"
 
-    option = st.radio("", ["Sign In", "Sign Up", "Guest"])
+def login(user, pwd):
+    if user in st.session_state.users and st.session_state.users[user] == pwd:
+        st.session_state.logged_in = True
+        st.session_state.show_login = False
 
-    if option == "Sign In":
-        u = st.text_input("Username")
-        p = st.text_input("Password", type="password")
-
-        if st.button("Login"):
-            if u in st.session_state.users and st.session_state.users[u] == p:
-                st.session_state.logged_in = True
-                st.session_state.username = u
-                st.rerun()
-            else:
-                st.error("Invalid login")
-
-    elif option == "Sign Up":
-        u = st.text_input("Create Username")
-        p = st.text_input("Create Password", type="password")
-
-        if st.button("Create Account"):
-            st.session_state.users[u] = p
-            st.success("Account created!")
-
+def register(user, pwd):
+    if user not in st.session_state.users:
+        st.session_state.users[user] = pwd
+        st.session_state.show_register = False
+        st.success("Registered Successfully!")
     else:
-        if st.button("Continue as Guest"):
-            st.session_state.logged_in = True
-            st.session_state.username = "Guest"
-            st.rerun()
+        st.error("User already exists")
 
-    st.markdown('</div>', unsafe_allow_html=True)
+# ------------------ HOME SCREEN ------------------
+if not st.session_state.logged_in:
 
-# -------------------- MAIN APP --------------------
-def app():
-    st.markdown(f'<div class="title">📧 Spam Detector</div>', unsafe_allow_html=True)
-    st.write(f"Welcome **{st.session_state.username}**")
+    st.title("📧 Spam Detection System")
+    st.write("### Welcome! Choose an option")
 
-    # -------- TEXT INPUT --------
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    text = st.text_area("Enter Email Text", height=150)
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    # -------- FILE UPLOAD --------
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    uploaded_file = st.file_uploader("Upload .txt Email", type=["txt"])
-
-    if uploaded_file:
-        text = uploaded_file.read().decode("utf-8")
-        st.success("File loaded successfully")
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    # -------- BUTTONS --------
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        analyze = st.button("Analyze")
+        if st.button("🔐 Login"):
+            st.session_state.show_login = True
 
     with col2:
-        clear = st.button("Clear")
+        if st.button("📝 Register"):
+            st.session_state.show_register = True
 
     with col3:
-        logout = st.button("Logout")
+        if st.button("👤 Continue as Guest"):
+            st.session_state.logged_in = True
 
-    # -------- ANALYSIS --------
-    if analyze:
-        if text.strip() == "":
-            st.warning("Enter text first")
-        else:
-            vec = vectorizer.transform([text])
-            pred = model.predict(vec)[0]
+    # -------- Login Popup --------
+    if st.session_state.show_login:
+        with st.container():
+            st.subheader("🔐 Login")
+            user = st.text_input("Username")
+            pwd = st.text_input("Password", type="password")
 
-            result = "Spam" if pred == 1 else "Not Spam"
+            if st.button("Submit Login"):
+                login(user, pwd)
 
-            if pred == 1:
-                st.error("🚫 Spam Email")
-            else:
-                st.success("✅ Not Spam")
+    # -------- Register Popup --------
+    if st.session_state.show_register:
+        with st.container():
+            st.subheader("📝 Register")
+            new_user = st.text_input("Create Username")
+            new_pwd = st.text_input("Create Password", type="password")
 
-            # Save history
-            st.session_state.history.append({
-                "text": text[:50],
-                "result": result
-            })
+            if st.button("Submit Register"):
+                register(new_user, new_pwd)
 
-    if clear:
-        st.rerun()
-
-    if logout:
-        st.session_state.logged_in = False
-        st.rerun()
-
-    # -------- HISTORY --------
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.subheader("🕘 History")
-
-    if len(st.session_state.history) == 0:
-        st.write("No history yet")
-    else:
-        for i, item in enumerate(reversed(st.session_state.history), 1):
-            st.write(f"{i}. {item['text']} → **{item['result']}**")
-
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# -------------------- ROUTING --------------------
-if st.session_state.logged_in:
-    app()
+# ------------------ MAIN APP ------------------
 else:
-    login()
+
+    st.title("📨 Spam Detection App")
+
+    if st.button("Logout"):
+        st.session_state.logged_in = False
+
+    text = st.text_area("Enter your email message:")
+
+    # File upload
+    uploaded_file = st.file_uploader("Upload a text file", type=["txt"])
+
+    if uploaded_file is not None:
+        text = uploaded_file.read().decode("utf-8")
+        st.text_area("File Content", text)
+
+    # Prediction
+    if st.button("Predict"):
+        if text.strip():
+            result = predict_email(text)
+            st.success(result)
+
+            st.session_state.history.append((text, result))
+        else:
+            st.warning("Enter text first")
+
+    # History
+    st.subheader("📜 History")
+
+    if st.session_state.history:
+        for msg, res in st.session_state.history[::-1]:
+            st.write(f"{res} → {msg[:40]}...")
+    else:
+        st.write("No history yet")
