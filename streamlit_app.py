@@ -6,7 +6,7 @@ st.set_page_config(page_title="Spam Detection", layout="centered")
 
 # ------------------ LOAD MODEL ------------------
 model = pickle.load(open("spam_model.pkl", "rb"))
-tfidf = pickle.load(open("tfidf_vectorizer.pkl", "rb"))
+tfidf = pickle.load(open("tfidf.pkl", "rb"))
 
 # ------------------ SESSION STATE ------------------
 if "logged_in" not in st.session_state:
